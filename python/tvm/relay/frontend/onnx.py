@@ -1765,6 +1765,17 @@ class HardSigmoid(OnnxOpConverter):
         attr = {"a_min": 0, "a_max": 1}
         return AttrCvt("clip")([transformX], attr)
 
+class HardSwish(OnnxOpConverter):
+    """Operator converter for HardSwish."""
+
+    @classmethod
+    def _impl_v1(cls, inputs, attr, params):
+        alpha = 1.0/6.0
+        beta = 0.5
+        transformX = (inputs[0] * _expr.const(alpha)) + _expr.const(beta)
+        attr = {"a_min": 0, "a_max": 1}
+        return inputs[0] * AttrCvt("clip")([transformX], attr)
+
 
 class Reduce(OnnxOpConverter):
     """Operator converter for reduce ops."""
@@ -4149,7 +4160,6 @@ class Momentum(OnnxOpConverter):
         result = output_tensors + output_momentums
         return _expr.TupleWrapper(_expr.Tuple(result), len(result))
 
-
 # compatible operators that do NOT require any conversion.
 _identity_list = []
 
@@ -4229,6 +4239,7 @@ def _get_convert_map(opset):
         "PRelu": Prelu.get_converter(opset),
         "Sigmoid": Renamer("sigmoid"),
         "HardSigmoid": HardSigmoid.get_converter(opset),
+        "HardSwish": HardSwish.get_converter(opset),
         "Max": Maximum.get_converter(opset),
         "Min": Minimum.get_converter(opset),
         "Sum": Sum.get_converter(opset),
