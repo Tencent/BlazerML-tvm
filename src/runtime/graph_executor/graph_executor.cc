@@ -39,6 +39,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <fstream>
 
 #include "../file_utils.h"
 
@@ -321,6 +322,49 @@ void GraphExecutor::DefaultLookupLinkedParam(TVMArgs args, TVMRetValue* rv) {
   *rv = NDArray(GetObjectPtr<Object>(container));
 }
 
+String GraphExecutor::getWorkspaceDtype() {
+  std::ostringstream os;
+  for (const std::string& s_type : attrs_.dltype) {
+    os << s_type << " ";
+  }
+  return os.str();
+}
+
+String GraphExecutor::getWorkspaceSize() {
+  std::ostringstream os;
+  for (size_t i = 0; i < data_entry_.size(); ++i) {
+    const DLTensor* tmp = data_entry_[i].operator->();
+    os << GetDataSize(*tmp) << " ";
+  }
+  return os.str();
+}
+
+String GraphExecutor::getFuncInorder() {
+  std::ostringstream os;
+  for(auto funcs : exec_func_) {
+    for(auto func : funcs) {
+      os << func << " ";
+    }
+    os << "\n";
+  }
+  return os.str();
+}
+
+String GraphExecutor::getStorageId() {
+  std::ostringstream os;
+  for(auto id : attrs_.storage_id){
+    os << id << " ";
+  }
+  os << "\n";
+  return os.str();
+}
+
+int GraphExecutor::GetOutputEid(int index) const {
+  ICHECK_LT(static_cast<size_t>(index), outputs_.size());
+  uint32_t eid = this->entry_id(outputs_[index]);
+  return eid;
+}
+
 void GraphExecutor::SetupStorage() {
   // Grab saved optimization plan from graph.
   std::vector<DLDataType> vtype;
@@ -423,14 +467,23 @@ void GraphExecutor::SetupOpExecs() {
     const auto& inode = nodes_[nid];
     if (inode.op_type == "null") continue;
     std::vector<DLTensor> args;
+    std::vector<uint32_t> indexes;
+    std::vector<String> funcs;
     for (const auto& e : inode.inputs) {
       uint32_t eid = this->entry_id(e);
       args.push_back(*(data_entry_[eid].operator->()));
+      indexes.push_back(eid);
     }
     for (uint32_t index = 0; index < inode.param.num_outputs; ++index) {
       uint32_t eid = this->entry_id(nid, index);
       args.push_back(*(data_entry_[eid].operator->()));
+      indexes.push_back(eid);
     }
+    funcs.push_back(inode.param.func_name);
+    for(auto eid : indexes) {
+      funcs.push_back(std::to_string(eid));
+    }
+    exec_func_.push_back(funcs);
     ICHECK(inode.op_type == "tvm_op") << "Can only take tvm_op as op";
 
     std::shared_ptr<OpArgs> op_args = nullptr;
@@ -613,6 +666,18 @@ PackedFunc GraphExecutor::GetFunction(const std::string& name,
       CHECK(String::CanConvertFrom(args[0])) << "Input key is not a string";
       *rv = this->GetInputIndex(args[0].operator String());
     });
+  } else if (name == "get_workspace_dtype") {
+    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->getWorkspaceDtype(); });
+  } else if (name == "get_workspace_size") {
+    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->getWorkspaceSize(); });
+  } else if (name == "get_func_inorder") {
+    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->getFuncInorder(); });
+  } else if (name == "get_storageid") {
+    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->getStorageId(); });
+  } else if (name == "get_output_eid") {
+    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
+        *rv = this->GetOutputEid(args[0]);
+    });   
   } else {
     return PackedFunc();
   }

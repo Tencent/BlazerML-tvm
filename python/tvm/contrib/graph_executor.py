@@ -162,6 +162,13 @@ class GraphModule(object):
         self._load_params = module["load_params"]
         self._share_params = module["share_params"]
 
+        self._get_workspace_dtype = module["get_workspace_dtype"]
+        self._get_workspace_size = module["get_workspace_size"]
+        self._get_func_inorder = module["get_func_inorder"]
+        self._get_storageid = module["get_storageid"]
+        self._get_output_eid = module["get_output_eid"]
+
+
     def set_input(self, key=None, value=None, **params):
         """Set inputs to the module via kwargs
 
@@ -407,3 +414,49 @@ class GraphModule(object):
         return self.module.time_evaluator(
             func_name, device, repeat=repeat, number=number, min_repeat_ms=min_repeat_ms
         )()
+
+    def get_workspace_dtype(self):
+        """Get the dtype of workspace to the graph
+
+        Returns
+        -------
+        dtype : str
+            The dtypes of workspace.
+        """
+        return self._get_workspace_dtype()
+
+    def get_workspace_size(self):
+        """Get the dtype of workspace to the graph
+
+        Returns
+        -------
+        dtype : int
+            The bytes size of workspace.
+        """
+        return self._get_workspace_size()
+
+    def get_func_inorder(self):
+        """Get the Host Function execute order
+
+        Returns
+        -------
+        dtype : str
+            The Host function execute order
+        """
+        return self._get_func_inorder()
+
+    def get_storageid(self):
+        return self._get_storageid()
+
+    def get_output_eid(self, index):
+        """Get index-th output to out
+
+        Parameters
+        ----------
+        index : int
+            The output index
+
+        out : NDArray
+            The output array container
+        """
+        return self._get_output_eid(index)

@@ -101,6 +101,7 @@ class BuildModule(object):
         self._set_params_func = self.mod["set_params"]
         self._get_params_func = self.mod["get_params"]
         self._get_function_metadata = self.mod["get_function_metadata"]
+        self._get_constant_params = self.mod["get_constant_params"]
 
     def build(
         self, mod, target=None, target_host=None, params=None, executor="graph", mod_name=None
@@ -244,6 +245,13 @@ class BuildModule(object):
             ret[key] = value.data
         return ret
 
+    def get_constant_params(self):
+        params = self._get_constant_params()
+        ret = {}
+        for key, value in params.items():
+            ret[key] = value.data.asnumpy()
+        return ret
+
 
 @register_func("tvm.relay.module_export_library")
 def _module_export(module, file_name):  # fcompile, addons, kwargs?
@@ -370,6 +378,7 @@ def build(ir_mod, target=None, target_host=None, params=None, mod_name="default"
             mod=ir_mod, target=target, params=params, executor=executor, mod_name=mod_name
         )
         func_metadata = bld_mod.get_function_metadata()
+        constant_params = bld_mod.get_constant_params()
 
         if executor == "aot":
             executor_factory = _executor_factory.AOTExecutorFactoryModule(
@@ -377,7 +386,7 @@ def build(ir_mod, target=None, target_host=None, params=None, mod_name="default"
             )
         elif executor == "graph":
             executor_factory = _executor_factory.GraphExecutorFactoryModule(
-                ir_mod, target, executor_config, runtime_mod, mod_name, params, func_metadata
+                ir_mod, target, executor_config, runtime_mod, mod_name, params, func_metadata, constant_params=constant_params
             )
         else:
             assert False, "Executor " + executor + " not supported"

@@ -130,8 +130,7 @@ class GraphExecutorFactoryModule(ExecutorFactoryModule):
     """
 
     def __init__(
-        self, ir_mod, target, graph_json_str, libmod, libmod_name, params, function_metadata
-    ):
+        self, ir_mod, target, graph_json_str, libmod, libmod_name, params, function_metadata, constant_params=None):
         assert isinstance(graph_json_str, string_types)
         fcreate = get_global_func("tvm.graph_executor_factory.create")
         args = []
@@ -148,6 +147,11 @@ class GraphExecutorFactoryModule(ExecutorFactoryModule):
         self.params = params
         self.iter_cnt = 0
         self.function_metadata = function_metadata
+        self.constant_params = constant_params
+        self._device_funcs_inorder = get_global_func("tvm.tir.transform.GetDeviceFuncsInorder")
+
+        self._device_funcs_thread_config = get_global_func("tvm.runtime.module.get_device_funcs_config")
+        self._device_allocate_global_memory = get_global_func("tvm.tir.transform.GetDeviceAllocateGlobalMem")
 
     def export_library(self, file_name, fcompile=None, addons=None, **kwargs):
         return self.module.export_library(file_name, fcompile, addons, **kwargs)
@@ -163,3 +167,15 @@ class GraphExecutorFactoryModule(ExecutorFactoryModule):
 
     def get_lib(self):
         return self.lib
+
+    def get_constant_params(self):
+        return self.constant_params
+
+    def get_devices_funcs_inorder(self):
+        return self._device_funcs_inorder()
+
+    def get_devices_thread_config(self):
+        return self._device_funcs_thread_config()
+
+    def get_devices_allocate_global_memory(self):
+        return self._device_allocate_global_memory()

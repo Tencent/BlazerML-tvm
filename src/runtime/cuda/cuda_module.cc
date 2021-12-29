@@ -31,6 +31,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <fstream>
 
 #include "../file_utils.h"
 #include "../meta_data.h"
@@ -40,6 +41,8 @@
 
 namespace tvm {
 namespace runtime {
+
+std::vector<String> device_funcs_thread_config;
 
 // Module to support thread-safe multi-GPU execution.
 // cuModule is a per-GPU module
@@ -172,6 +175,7 @@ class CUDAWrappedFunc {
     CUresult result = cuLaunchKernel(fcache_[device_id], wl.grid_dim(0), wl.grid_dim(1),
                                      wl.grid_dim(2), wl.block_dim(0), wl.block_dim(1),
                                      wl.block_dim(2), wl.dyn_shmem_size, strm, void_args, nullptr);
+    std::ostringstream os;
     if (result != CUDA_SUCCESS && result != CUDA_ERROR_DEINITIALIZED) {
       const char* msg;
       cuGetErrorName(result, &msg);
@@ -188,6 +192,12 @@ class CUDAWrappedFunc {
            << cuda;
       }
       LOG(FATAL) << os.str();
+    }else{
+      os << func_name_
+         << " grid=(" << wl.grid_dim(0) << "," << wl.grid_dim(1) << "," << wl.grid_dim(2) << ") "
+         << " block=(" << wl.block_dim(0) << "," << wl.block_dim(1) << "," << wl.block_dim(2)
+         << ")\n";
+      device_funcs_thread_config.push_back(os.str());
     }
   }
 
@@ -248,6 +258,7 @@ PackedFunc CUDAModuleNode::GetFunction(const std::string& name,
 Module CUDAModuleCreate(std::string data, std::string fmt,
                         std::unordered_map<std::string, FunctionInfo> fmap,
                         std::string cuda_source) {
+  device_funcs_thread_config.clear();
   auto n = make_object<CUDAModuleNode>(data, fmt, fmap, cuda_source);
   return Module(n);
 }
@@ -274,10 +285,22 @@ Module CUDAModuleLoadBinary(void* strm) {
   return CUDAModuleCreate(data, fmt, fmap, std::string());
 }
 
+String CUDAModuleLoadFuncsConfig(){
+  String ret = "";
+  for(auto func_config : device_funcs_thread_config){
+    ret = ret + func_config;
+  }
+  return ret;
+}
+
 TVM_REGISTER_GLOBAL("runtime.module.loadfile_cubin").set_body_typed(CUDAModuleLoadFile);
 
 TVM_REGISTER_GLOBAL("runtime.module.loadfile_ptx").set_body_typed(CUDAModuleLoadFile);
 
 TVM_REGISTER_GLOBAL("runtime.module.loadbinary_cuda").set_body_typed(CUDAModuleLoadBinary);
+
+TVM_REGISTER_GLOBAL("tvm.runtime.module.get_device_funcs_config").set_body([](TVMArgs args, TVMRetValue* rv){
+  *rv = CUDAModuleLoadFuncsConfig();
+});
 }  // namespace runtime
 }  // namespace tvm

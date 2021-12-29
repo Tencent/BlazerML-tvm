@@ -539,6 +539,7 @@ def autoscheduler_get_tuning_tasks(
     alter_layout: Optional[str] = None,
     hardware_params: Optional[HardwareParams] = None,
     include_simple_tasks: bool = False,
+    opt_level=3,
 ):
     """Get the autoscheduler tuning tasks for a given relay module.
 
@@ -578,6 +579,7 @@ def autoscheduler_get_tuning_tasks(
         target=target,
         hardware_params=hardware_params,
         include_simple_tasks=include_simple_tasks,
+        opt_level=opt_level,
     )
 
     return tasks, task_weights

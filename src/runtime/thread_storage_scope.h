@@ -241,6 +241,8 @@ class LaunchParamConfig {
   // return the work dim
   size_t work_dim() const { return work_dim_; }
 
+  size_t base() const { return base_; }
+
  private:
   /*! \brief base axis */
   size_t base_;

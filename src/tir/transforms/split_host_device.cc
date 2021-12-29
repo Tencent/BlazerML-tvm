@@ -39,6 +39,10 @@
 namespace tvm {
 namespace tir {
 
+extern std::unordered_map<std::string, std::vector<PrimExpr> > param_buffer_idx_match;
+std::vector<String> device_exec_funcs_;
+std::vector<String> allocate_global_memory_;
+
 // use/def analysis, also delete unreferenced lets
 class VarUseDefAnalysis : public StmtExprMutator {
  public:
@@ -222,6 +226,14 @@ class HostDeviceSplitter : public StmtMutator {
       : device_mod_(device_mod), device_target_(device_target), name_prefix_(name_prefix) {}
 
   Stmt VisitStmt_(const AllocateNode* op) final {
+    std::ostringstream os;
+    os << op->buffer_var.get() << " " << op->dtype << " ";
+    for(auto extent : op->extents){
+      os << extent << " ";
+    }
+    os << "\n";
+    allocate_global_memory_.push_back(os.str());
+    allocate_node_msg_.insert(op->buffer_var.get());
     handle_data_type_[op->buffer_var.get()] = make_const(op->dtype, 0);
     return StmtMutator::VisitStmt_(op);
   }
@@ -287,13 +299,33 @@ class HostDeviceSplitter : public StmtMutator {
 
     // generate calls to the device function
     Array<PrimExpr> call_args;
+    Array<PrimExpr> real_args;
     call_args.push_back(StringImm(kernel_symbol));
     for (PrimExpr arg : arguments) {
       call_args.push_back(arg);
+      real_args.push_back(arg);
     }
     for (PrimExpr ext : m.thread_extent_) {
       call_args.push_back(ext);
     }
+    os.str("");
+    os << kernel_symbol << " ";
+    for(auto arg : real_args){
+      bool find_param_in_host = false;
+      for(int i = 0 ; i < param_buffer_idx_match[name_prefix_].size(); ++i){
+        if(arg.get() == param_buffer_idx_match[name_prefix_][i].get()){
+          os << i << " ";
+          find_param_in_host = true;
+        }
+      }
+      std::cout << std::endl;
+      if(!find_param_in_host){
+        os << arg.get() << " ";
+      }
+    }
+    os << "\n";
+    device_exec_funcs_.push_back(os.str());
+
     if (m.use_dyn_shmem_) {
       call_args.push_back(m.dyn_shmem_size_);
     }
@@ -309,6 +341,7 @@ class HostDeviceSplitter : public StmtMutator {
   // Number of device functions.
   int device_func_counter_{0};
   std::unordered_map<const VarNode*, PrimExpr> handle_data_type_;
+  std::unordered_set<const PrimExprNode*> allocate_node_msg_;
 };
 
 PrimFunc SplitHostDevice(PrimFunc&& func, IRModule* device_mod) {
@@ -330,11 +363,29 @@ PrimFunc SplitHostDevice(PrimFunc&& func, IRModule* device_mod) {
 
 namespace transform {
 
+String GetDeviceFuncsInorder() {
+  String ret = "";
+  for(auto func : device_exec_funcs_) {
+    ret = ret + func;
+  }
+  return ret;
+}
+
+String GetDeviceAllocateGlobalMem() {
+  String ret = "";
+  for(auto m : allocate_global_memory_){
+    ret = ret + m;
+  }
+  return ret;
+}
+
 Pass SplitHostDevice() {
   auto pass_func = [](IRModule mod, PassContext ctx) {
     IRModuleNode* mod_ptr = mod.CopyOnWrite();
     auto* func_dict = mod_ptr->functions.CopyOnWrite();
     IRModule device_mod = IRModule(Map<GlobalVar, BaseFunc>({}));
+    device_exec_funcs_.clear();
+    allocate_global_memory_.clear();
 
     for (auto& kv : *func_dict) {
       if (kv.second->IsInstance<PrimFuncNode>()) {
@@ -351,6 +402,14 @@ Pass SplitHostDevice() {
 }
 
 TVM_REGISTER_GLOBAL("tir.transform.SplitHostDevice").set_body_typed(SplitHostDevice);
+
+TVM_REGISTER_GLOBAL("tvm.tir.transform.GetDeviceFuncsInorder").set_body([](TVMArgs args, TVMRetValue* rv) {
+  *rv = GetDeviceFuncsInorder();
+});
+
+TVM_REGISTER_GLOBAL("tvm.tir.transform.GetDeviceAllocateGlobalMem").set_body([](TVMArgs args, TVMRetValue* rv) {
+  *rv = GetDeviceAllocateGlobalMem();
+});
 
 }  // namespace transform
 }  // namespace tir

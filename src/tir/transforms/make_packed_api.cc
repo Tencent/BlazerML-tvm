@@ -40,6 +40,8 @@
 namespace tvm {
 namespace tir {
 
+std::unordered_map<std::string, std::vector<PrimExpr> > param_buffer_idx_match;
+
 class ReturnRewriter : public StmtMutator {
  public:
   explicit ReturnRewriter(Var ret_var, Var ret_tcode) : ret_var_(ret_var), ret_tcode_(ret_tcode) {}
@@ -175,6 +177,7 @@ PrimFunc MakePackedAPI(PrimFunc&& func, int num_unpacked_args) {
   // Need to re-declare vars, in case some arguments also appears in the buffer.
   std::vector<std::pair<Var, Var> > var_def;
   std::vector<std::pair<Var, Buffer> > buffer_def;
+  std::vector<PrimExpr> cur_func_param;
 
   for (int i = 0; i < static_cast<int>(func_ptr->params.size()); ++i) {
     Var param = func_ptr->params[i];
@@ -182,6 +185,7 @@ PrimFunc MakePackedAPI(PrimFunc&& func, int num_unpacked_args) {
 
     auto it = func_ptr->buffer_map.find(param);
     if (it != func_ptr->buffer_map.end()) {
+      cur_func_param.push_back((*it).second->data);
       buffer_def.emplace_back(v_arg, (*it).second);
     } else {
       var_def.emplace_back(v_arg, param);
@@ -216,7 +220,8 @@ PrimFunc MakePackedAPI(PrimFunc&& func, int num_unpacked_args) {
       args.push_back(v_arg);
     }
   }
-
+  param_buffer_idx_match[name_hint] = cur_func_param;
+  
   // allow return value if the function is packed.
   if (pack_args) {
     args.push_back(v_out_ret_value);
