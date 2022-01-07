@@ -148,10 +148,9 @@ class GraphExecutorFactoryModule(ExecutorFactoryModule):
         self.iter_cnt = 0
         self.function_metadata = function_metadata
         self.constant_params = constant_params
-        self._device_funcs_inorder = get_global_func("tvm.tir.transform.GetDeviceFuncsInorder")
-
-        self._device_funcs_thread_config = get_global_func("tvm.runtime.module.get_device_funcs_config")
-        self._device_allocate_global_memory = get_global_func("tvm.tir.transform.GetDeviceAllocateGlobalMem")
+        self._device_funcs_list = get_global_func("tvm.tir.transform.getDeviceFuncsList")
+        self._grid_block_thread_config = get_global_func("tvm.runtime.module.getGridBlockThreadConfig")
+        self._device_memory_size = get_global_func("tvm.tir.transform.getDeviceMemorySize")
 
     def export_library(self, file_name, fcompile=None, addons=None, **kwargs):
         return self.module.export_library(file_name, fcompile, addons, **kwargs)
@@ -171,11 +170,11 @@ class GraphExecutorFactoryModule(ExecutorFactoryModule):
     def get_constant_params(self):
         return self.constant_params
 
-    def get_devices_funcs_inorder(self):
-        return self._device_funcs_inorder()
+    def get_device_function_list(self):
+        return self._device_funcs_list()
 
-    def get_devices_thread_config(self):
-        return self._device_funcs_thread_config()
+    def get_grid_block_thread_config(self):
+        return self._grid_block_thread_config()
 
-    def get_devices_allocate_global_memory(self):
-        return self._device_allocate_global_memory()
+    def get_device_memory_size(self):
+        return self._device_memory_size()

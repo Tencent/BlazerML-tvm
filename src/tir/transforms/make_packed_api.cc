@@ -40,7 +40,7 @@
 namespace tvm {
 namespace tir {
 
-std::unordered_map<std::string, std::vector<PrimExpr> > param_buffer_idx_match;
+std::unordered_map<std::string, std::vector<PrimExpr> > host_name_to_param_;
 
 class ReturnRewriter : public StmtMutator {
  public:
@@ -220,7 +220,7 @@ PrimFunc MakePackedAPI(PrimFunc&& func, int num_unpacked_args) {
       args.push_back(v_arg);
     }
   }
-  param_buffer_idx_match[name_hint] = cur_func_param;
+  host_name_to_param_[name_hint] = cur_func_param;
   
   // allow return value if the function is packed.
   if (pack_args) {
@@ -295,7 +295,7 @@ Pass MakePackedAPI(int num_unpacked_args) {
   auto pass_func = [num_unpacked_args](IRModule m, PassContext ctx) {
     IRModuleNode* mptr = m.CopyOnWrite();
     std::vector<std::pair<GlobalVar, PrimFunc> > updates;
-
+    host_name_to_param_.clear();
     for (const auto& kv : mptr->functions) {
       if (auto* n = kv.second.as<PrimFuncNode>()) {
         PrimFunc func = GetRef<PrimFunc>(n);

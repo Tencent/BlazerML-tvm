@@ -285,7 +285,7 @@ Module CUDAModuleLoadBinary(void* strm) {
   return CUDAModuleCreate(data, fmt, fmap, std::string());
 }
 
-String CUDAModuleLoadFuncsConfig(){
+String CUDAModuleGetGridBlockThreadConfig(){
   String ret = "";
   for(auto func_config : device_funcs_thread_config){
     ret = ret + func_config;
@@ -299,8 +299,8 @@ TVM_REGISTER_GLOBAL("runtime.module.loadfile_ptx").set_body_typed(CUDAModuleLoad
 
 TVM_REGISTER_GLOBAL("runtime.module.loadbinary_cuda").set_body_typed(CUDAModuleLoadBinary);
 
-TVM_REGISTER_GLOBAL("tvm.runtime.module.get_device_funcs_config").set_body([](TVMArgs args, TVMRetValue* rv){
-  *rv = CUDAModuleLoadFuncsConfig();
+TVM_REGISTER_GLOBAL("tvm.runtime.module.getGridBlockThreadConfig").set_body([](TVMArgs args, TVMRetValue* rv){
+  *rv = CUDAModuleGetGridBlockThreadConfig();
 });
 }  // namespace runtime
 }  // namespace tvm

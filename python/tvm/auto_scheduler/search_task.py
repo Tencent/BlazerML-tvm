@@ -447,9 +447,7 @@ class SearchTask(Object):
             compute_dag = ComputeDAG(workload_key)
 
         assert target is not None, "Must specify a target."
-  
-        self._target = target
-  
+
         target, target_host = Target.check_and_update_host_consist(target, target_host)
 
         if layout_rewrite_option is None:
@@ -497,8 +495,7 @@ class SearchTask(Object):
             cost_model = XGBModel()
             search_policy = SketchPolicy(self, cost_model)
 
-        #_ffi_api.AutoSchedule(search_policy, tuning_options)
-        self._sch, self._tensors = _ffi_api.AutoSchedule(search_policy, tuning_options)
+        _ffi_api.AutoSchedule(search_policy, tuning_options)
 
     def apply_best(self, log_file, include_compatible=False, layout_rewrite_option=None):
         """Apply the history best from a log file and return the schedule.
@@ -524,10 +521,6 @@ class SearchTask(Object):
             raise RuntimeError(
                 "Cannot find any valid schedule for %s in file %s" % (self.workload_key, log_file)
             )
-        
-        with tvm.target.Target(self._target):
-            sch = tvm.topi.testing.get_injective_schedule(self._target)(self._tensors[-1])
-            return sch, self._tensors
 
         sch, args = self.compute_dag.apply_steps_from_state(
             inp.state, layout_rewrite_option or self.layout_rewrite_option

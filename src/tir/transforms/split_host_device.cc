@@ -39,9 +39,9 @@
 namespace tvm {
 namespace tir {
 
-extern std::unordered_map<std::string, std::vector<PrimExpr> > param_buffer_idx_match;
-std::vector<String> device_exec_funcs_;
-std::vector<String> allocate_global_memory_;
+extern std::unordered_map<std::string, std::vector<PrimExpr> > host_name_to_param_;
+std::vector<String> device_funcs_;
+std::vector<String> device_memory_size_;
 
 // use/def analysis, also delete unreferenced lets
 class VarUseDefAnalysis : public StmtExprMutator {
@@ -232,8 +232,7 @@ class HostDeviceSplitter : public StmtMutator {
       os << extent << " ";
     }
     os << "\n";
-    allocate_global_memory_.push_back(os.str());
-    allocate_node_msg_.insert(op->buffer_var.get());
+    device_memory_size_.push_back(os.str());
     handle_data_type_[op->buffer_var.get()] = make_const(op->dtype, 0);
     return StmtMutator::VisitStmt_(op);
   }
@@ -299,21 +298,21 @@ class HostDeviceSplitter : public StmtMutator {
 
     // generate calls to the device function
     Array<PrimExpr> call_args;
-    Array<PrimExpr> real_args;
+    Array<PrimExpr> cuda_kernel_args;
     call_args.push_back(StringImm(kernel_symbol));
     for (PrimExpr arg : arguments) {
       call_args.push_back(arg);
-      real_args.push_back(arg);
+      cuda_kernel_args.push_back(arg);
     }
     for (PrimExpr ext : m.thread_extent_) {
       call_args.push_back(ext);
     }
     os.str("");
     os << kernel_symbol << " ";
-    for(auto arg : real_args){
+    for(auto arg : cuda_kernel_args){
       bool find_param_in_host = false;
-      for(int i = 0 ; i < param_buffer_idx_match[name_prefix_].size(); ++i){
-        if(arg.get() == param_buffer_idx_match[name_prefix_][i].get()){
+      for(int i = 0 ; i < host_name_to_param_[name_prefix_].size(); ++i){
+        if(arg.same_as(host_name_to_param_[name_prefix_][i])){
           os << i << " ";
           find_param_in_host = true;
         }
@@ -324,7 +323,7 @@ class HostDeviceSplitter : public StmtMutator {
       }
     }
     os << "\n";
-    device_exec_funcs_.push_back(os.str());
+    device_funcs_.push_back(os.str());
 
     if (m.use_dyn_shmem_) {
       call_args.push_back(m.dyn_shmem_size_);
@@ -341,7 +340,6 @@ class HostDeviceSplitter : public StmtMutator {
   // Number of device functions.
   int device_func_counter_{0};
   std::unordered_map<const VarNode*, PrimExpr> handle_data_type_;
-  std::unordered_set<const PrimExprNode*> allocate_node_msg_;
 };
 
 PrimFunc SplitHostDevice(PrimFunc&& func, IRModule* device_mod) {
@@ -363,17 +361,17 @@ PrimFunc SplitHostDevice(PrimFunc&& func, IRModule* device_mod) {
 
 namespace transform {
 
-String GetDeviceFuncsInorder() {
+String GetDeviceFuncsList() {
   String ret = "";
-  for(auto func : device_exec_funcs_) {
+  for(auto func : device_funcs_) {
     ret = ret + func;
   }
   return ret;
 }
 
-String GetDeviceAllocateGlobalMem() {
+String GetDeviceMemorySize() {
   String ret = "";
-  for(auto m : allocate_global_memory_){
+  for(auto m : device_memory_size_){
     ret = ret + m;
   }
   return ret;
@@ -384,8 +382,8 @@ Pass SplitHostDevice() {
     IRModuleNode* mod_ptr = mod.CopyOnWrite();
     auto* func_dict = mod_ptr->functions.CopyOnWrite();
     IRModule device_mod = IRModule(Map<GlobalVar, BaseFunc>({}));
-    device_exec_funcs_.clear();
-    allocate_global_memory_.clear();
+    device_funcs_.clear();
+    device_memory_size_.clear();
 
     for (auto& kv : *func_dict) {
       if (kv.second->IsInstance<PrimFuncNode>()) {
@@ -403,12 +401,12 @@ Pass SplitHostDevice() {
 
 TVM_REGISTER_GLOBAL("tir.transform.SplitHostDevice").set_body_typed(SplitHostDevice);
 
-TVM_REGISTER_GLOBAL("tvm.tir.transform.GetDeviceFuncsInorder").set_body([](TVMArgs args, TVMRetValue* rv) {
-  *rv = GetDeviceFuncsInorder();
+TVM_REGISTER_GLOBAL("tvm.tir.transform.getDeviceFuncsList").set_body([](TVMArgs args, TVMRetValue* rv) {
+  *rv = GetDeviceFuncsList();
 });
 
-TVM_REGISTER_GLOBAL("tvm.tir.transform.GetDeviceAllocateGlobalMem").set_body([](TVMArgs args, TVMRetValue* rv) {
-  *rv = GetDeviceAllocateGlobalMem();
+TVM_REGISTER_GLOBAL("tvm.tir.transform.getDeviceMemorySize").set_body([](TVMArgs args, TVMRetValue* rv) {
+  *rv = GetDeviceMemorySize();
 });
 
 }  // namespace transform

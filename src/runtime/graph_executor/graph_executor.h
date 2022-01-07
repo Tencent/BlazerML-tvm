@@ -387,12 +387,12 @@ class TVM_DLL GraphExecutor : public ModuleNode {
   }
 
   /*! \brief get the storage dtype */
-  String getWorkspaceDtype();
+  String GetWorkspaceDtype();
   /*! \brief get the storage size */
-  String getWorkspaceSize();
+  String GetWorkspaceSize();
   /*! \brief get the exec func in order*/
-  String getFuncInorder();
-  String getStorageId();
+  String GetFuncList();
+  String GetStorageId();
   int GetOutputEid(int index) const;
   /*! \brief PackedFunc to lookup a linked paramter from a local Module. */
   void DefaultLookupLinkedParam(TVMArgs args, TVMRetValue* rv);

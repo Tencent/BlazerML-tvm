@@ -322,7 +322,7 @@ void GraphExecutor::DefaultLookupLinkedParam(TVMArgs args, TVMRetValue* rv) {
   *rv = NDArray(GetObjectPtr<Object>(container));
 }
 
-String GraphExecutor::getWorkspaceDtype() {
+String GraphExecutor::GetWorkspaceDtype() {
   std::ostringstream os;
   for (const std::string& s_type : attrs_.dltype) {
     os << s_type << " ";
@@ -330,7 +330,7 @@ String GraphExecutor::getWorkspaceDtype() {
   return os.str();
 }
 
-String GraphExecutor::getWorkspaceSize() {
+String GraphExecutor::GetWorkspaceSize() {
   std::ostringstream os;
   for (size_t i = 0; i < data_entry_.size(); ++i) {
     const DLTensor* tmp = data_entry_[i].operator->();
@@ -339,7 +339,7 @@ String GraphExecutor::getWorkspaceSize() {
   return os.str();
 }
 
-String GraphExecutor::getFuncInorder() {
+String GraphExecutor::GetFuncList() {
   std::ostringstream os;
   for(auto funcs : exec_func_) {
     for(auto func : funcs) {
@@ -350,7 +350,7 @@ String GraphExecutor::getFuncInorder() {
   return os.str();
 }
 
-String GraphExecutor::getStorageId() {
+String GraphExecutor::GetStorageId() {
   std::ostringstream os;
   for(auto id : attrs_.storage_id){
     os << id << " ";
@@ -667,13 +667,13 @@ PackedFunc GraphExecutor::GetFunction(const std::string& name,
       *rv = this->GetInputIndex(args[0].operator String());
     });
   } else if (name == "get_workspace_dtype") {
-    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->getWorkspaceDtype(); });
+    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->GetWorkspaceDtype(); });
   } else if (name == "get_workspace_size") {
-    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->getWorkspaceSize(); });
+    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->GetWorkspaceSize(); });
   } else if (name == "get_func_inorder") {
-    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->getFuncInorder(); });
+    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->GetFuncList(); });
   } else if (name == "get_storageid") {
-    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->getStorageId(); });
+    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->GetStorageId(); });
   } else if (name == "get_output_eid") {
     return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
         *rv = this->GetOutputEid(args[0]);
