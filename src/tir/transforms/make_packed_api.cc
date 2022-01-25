@@ -221,7 +221,7 @@ PrimFunc MakePackedAPI(PrimFunc&& func, int num_unpacked_args) {
     }
   }
   host_name_to_param_[name_hint] = cur_func_param;
-  
+
   // allow return value if the function is packed.
   if (pack_args) {
     args.push_back(v_out_ret_value);

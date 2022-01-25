@@ -210,9 +210,8 @@ class RelayBuildModule : public runtime::ModuleNode {
         *rv = this->Optimize(args[0], args[1], this->params_);
       });
     } else if (name == "get_constant_params") {
-      return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
-        *rv = this->GetConstantParams();
-      });
+      return PackedFunc(
+          [sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->GetConstantParams(); });
     } else {
       LOG(FATAL) << "Unknown packed function: " << name;
       return PackedFunc([sptr_to_self, name](TVMArgs args, TVMRetValue* rv) {});
@@ -272,9 +271,6 @@ class RelayBuildModule : public runtime::ModuleNode {
     }
     return ret;
   }
-
-
-
 
   /*!
    * \brief Set the parameters

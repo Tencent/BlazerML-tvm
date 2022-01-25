@@ -228,7 +228,7 @@ class HostDeviceSplitter : public StmtMutator {
   Stmt VisitStmt_(const AllocateNode* op) final {
     std::ostringstream os;
     os << op->buffer_var.get() << " " << op->dtype << " ";
-    for(auto extent : op->extents){
+    for (auto extent : op->extents) {
       os << extent << " ";
     }
     os << "\n";
@@ -309,16 +309,16 @@ class HostDeviceSplitter : public StmtMutator {
     }
     os.str("");
     os << kernel_symbol << " ";
-    for(auto arg : cuda_kernel_args){
+    for (auto arg : cuda_kernel_args) {
       bool find_param_in_host = false;
-      for(int i = 0 ; i < host_name_to_param_[name_prefix_].size(); ++i){
-        if(arg.same_as(host_name_to_param_[name_prefix_][i])){
+      for (int i = 0; i < host_name_to_param_[name_prefix_].size(); ++i) {
+        if (arg.same_as(host_name_to_param_[name_prefix_][i])) {
           os << i << " ";
           find_param_in_host = true;
         }
       }
       std::cout << std::endl;
-      if(!find_param_in_host){
+      if (!find_param_in_host) {
         os << arg.get() << " ";
       }
     }
@@ -363,7 +363,7 @@ namespace transform {
 
 String GetDeviceFuncsList() {
   String ret = "";
-  for(auto func : device_funcs_) {
+  for (auto func : device_funcs_) {
     ret = ret + func;
   }
   return ret;
@@ -371,7 +371,7 @@ String GetDeviceFuncsList() {
 
 String GetDeviceMemorySize() {
   String ret = "";
-  for(auto m : device_memory_size_){
+  for (auto m : device_memory_size_) {
     ret = ret + m;
   }
   return ret;
@@ -401,13 +401,11 @@ Pass SplitHostDevice() {
 
 TVM_REGISTER_GLOBAL("tir.transform.SplitHostDevice").set_body_typed(SplitHostDevice);
 
-TVM_REGISTER_GLOBAL("tvm.tir.transform.getDeviceFuncsList").set_body([](TVMArgs args, TVMRetValue* rv) {
-  *rv = GetDeviceFuncsList();
-});
+TVM_REGISTER_GLOBAL("tvm.tir.transform.getDeviceFuncsList")
+    .set_body([](TVMArgs args, TVMRetValue* rv) { *rv = GetDeviceFuncsList(); });
 
-TVM_REGISTER_GLOBAL("tvm.tir.transform.getDeviceMemorySize").set_body([](TVMArgs args, TVMRetValue* rv) {
-  *rv = GetDeviceMemorySize();
-});
+TVM_REGISTER_GLOBAL("tvm.tir.transform.getDeviceMemorySize")
+    .set_body([](TVMArgs args, TVMRetValue* rv) { *rv = GetDeviceMemorySize(); });
 
 }  // namespace transform
 }  // namespace tir

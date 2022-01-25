@@ -32,6 +32,7 @@
 #include <tvm/runtime/serializer.h>
 
 #include <algorithm>
+#include <fstream>
 #include <functional>
 #include <memory>
 #include <numeric>
@@ -39,7 +40,6 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <fstream>
 
 #include "../file_utils.h"
 
@@ -341,8 +341,8 @@ String GraphExecutor::GetWorkspaceSize() {
 
 String GraphExecutor::GetFuncList() {
   std::ostringstream os;
-  for(auto funcs : exec_func_) {
-    for(auto func : funcs) {
+  for (auto funcs : exec_func_) {
+    for (auto func : funcs) {
       os << func << " ";
     }
     os << "\n";
@@ -352,7 +352,7 @@ String GraphExecutor::GetFuncList() {
 
 String GraphExecutor::GetStorageId() {
   std::ostringstream os;
-  for(auto id : attrs_.storage_id){
+  for (auto id : attrs_.storage_id) {
     os << id << " ";
   }
   os << "\n";
@@ -480,7 +480,7 @@ void GraphExecutor::SetupOpExecs() {
       indexes.push_back(eid);
     }
     funcs.push_back(inode.param.func_name);
-    for(auto eid : indexes) {
+    for (auto eid : indexes) {
       funcs.push_back(std::to_string(eid));
     }
     exec_func_.push_back(funcs);
@@ -667,17 +667,20 @@ PackedFunc GraphExecutor::GetFunction(const std::string& name,
       *rv = this->GetInputIndex(args[0].operator String());
     });
   } else if (name == "get_workspace_dtype") {
-    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->GetWorkspaceDtype(); });
+    return PackedFunc(
+        [sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->GetWorkspaceDtype(); });
   } else if (name == "get_workspace_size") {
-    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->GetWorkspaceSize(); });
+    return PackedFunc(
+        [sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->GetWorkspaceSize(); });
   } else if (name == "get_func_inorder") {
-    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->GetFuncList(); });
+    return PackedFunc(
+        [sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->GetFuncList(); });
   } else if (name == "get_storageid") {
-    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->GetStorageId(); });
+    return PackedFunc(
+        [sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->GetStorageId(); });
   } else if (name == "get_output_eid") {
-    return PackedFunc([sptr_to_self, this](TVMArgs args, TVMRetValue* rv) {
-        *rv = this->GetOutputEid(args[0]);
-    });   
+    return PackedFunc(
+        [sptr_to_self, this](TVMArgs args, TVMRetValue* rv) { *rv = this->GetOutputEid(args[0]); });
   } else {
     return PackedFunc();
   }

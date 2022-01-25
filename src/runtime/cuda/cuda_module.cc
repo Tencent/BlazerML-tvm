@@ -27,11 +27,11 @@
 #include <tvm/runtime/registry.h>
 
 #include <array>
+#include <fstream>
 #include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <fstream>
 
 #include "../file_utils.h"
 #include "../meta_data.h"
@@ -192,9 +192,9 @@ class CUDAWrappedFunc {
            << cuda;
       }
       LOG(FATAL) << os.str();
-    }else{
-      os << func_name_
-         << " grid=(" << wl.grid_dim(0) << "," << wl.grid_dim(1) << "," << wl.grid_dim(2) << ") "
+    } else {
+      os << func_name_ << " grid=(" << wl.grid_dim(0) << "," << wl.grid_dim(1) << ","
+         << wl.grid_dim(2) << ") "
          << " block=(" << wl.block_dim(0) << "," << wl.block_dim(1) << "," << wl.block_dim(2)
          << ")\n";
       device_funcs_thread_config.push_back(os.str());
@@ -285,9 +285,9 @@ Module CUDAModuleLoadBinary(void* strm) {
   return CUDAModuleCreate(data, fmt, fmap, std::string());
 }
 
-String CUDAModuleGetGridBlockThreadConfig(){
+String CUDAModuleGetGridBlockThreadConfig() {
   String ret = "";
-  for(auto func_config : device_funcs_thread_config){
+  for (auto func_config : device_funcs_thread_config) {
     ret = ret + func_config;
   }
   return ret;
@@ -299,8 +299,7 @@ TVM_REGISTER_GLOBAL("runtime.module.loadfile_ptx").set_body_typed(CUDAModuleLoad
 
 TVM_REGISTER_GLOBAL("runtime.module.loadbinary_cuda").set_body_typed(CUDAModuleLoadBinary);
 
-TVM_REGISTER_GLOBAL("tvm.runtime.module.getGridBlockThreadConfig").set_body([](TVMArgs args, TVMRetValue* rv){
-  *rv = CUDAModuleGetGridBlockThreadConfig();
-});
+TVM_REGISTER_GLOBAL("tvm.runtime.module.getGridBlockThreadConfig")
+    .set_body([](TVMArgs args, TVMRetValue* rv) { *rv = CUDAModuleGetGridBlockThreadConfig(); });
 }  // namespace runtime
 }  // namespace tvm

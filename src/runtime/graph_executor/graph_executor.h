@@ -412,7 +412,6 @@ class TVM_DLL GraphExecutor : public ModuleNode {
   /*! \brief Store execute function in order */
   std::vector<std::vector<String>> exec_func_;
 
-
   /*!
    * \brief Create an execution function given input.
    * \param attrs The node attributes.
