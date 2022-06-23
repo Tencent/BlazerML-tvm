@@ -2058,9 +2058,9 @@ class OneHot(OnnxOpConverter):
         dtype = infer_type(on_value).checked_type.dtype
         ind_dtype = infer_type(indices).checked_type.dtype
         # Normalize the indices to a positive range
-        indices = _op.where(
-            indices < _op.const(0, ind_dtype), indices + _op.cast(depth, ind_dtype), indices
-        )
+        #indices = _op.where(
+        #    indices < _op.const(0, ind_dtype), indices + _op.cast(depth, ind_dtype), indices
+        #)
         # set default value when axis is not set in the model
         if "axis" not in attr:
             attr["axis"] = -1
