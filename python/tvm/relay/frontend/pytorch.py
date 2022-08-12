@@ -2818,6 +2818,48 @@ class PyTorchOpConverter:
 
         return out
 
+    def grid_sampler(self, inputs, input_types):
+        interpolate_mode = inputs[2]
+        padding_mode = inputs[3]
+        align_corners = inputs[4]
+        data_shape = self.infer_shape_with_prelude(inputs[0])
+
+        if len(data_shape) == 4:
+            layout = "NCHW"
+            axes = [0, 3, 1, 2]
+            grid = _op.transform.transpose(inputs[1], axes)
+        elif len(data_shape) == 5:
+            layout = "NCDHW"
+            axes = [0, 4, 1, 2, 3]
+            grid = _op.transform.transpose(inputs[1], axes)
+        else:
+            msg = f"only 4D and 5D are supported."
+            raise ValueError(msg)
+
+        if interpolate_mode == 0:
+            interpolate_str = "bilinear"
+        elif interpolate_mode == 1:
+            interpolate_str = "nearest"
+        elif interpolate_mode == 2:
+            interpolate_str = "bicubic"
+        else:
+            msg = f"interpolation method {interpolate_mode} is not supported"
+            raise ValueError(msg)
+
+        if padding_mode == 0:
+            padding_mode_str = "zeros"
+        elif padding_mode == 1:
+            padding_mode_str = "border"
+        elif padding_mode == 2:
+            padding_mode_str = "reflection"
+        else:
+            msg = f"padding_mode {padding_mode} is not supported"
+            raise ValueError(msg)
+
+        return _op.image.grid_sample(
+            inputs[0], grid, interpolate_str, layout, padding_mode_str, align_corners
+        )
+
     # Operator mappings
     def create_convert_map(self):
         self.convert_map = {
@@ -3062,6 +3104,8 @@ class PyTorchOpConverter:
             "aten::searchsorted": self.searchsorted,
             "aten::bucketize": self.bucketize,
             "aten::roll": self.roll,
+            # added by qianqiu
+            "aten::grid_sampler": self.grid_sampler,
         }
 
     def update_convert_map(self, custom_map):

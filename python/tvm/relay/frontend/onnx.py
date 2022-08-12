@@ -4160,6 +4160,38 @@ class Momentum(OnnxOpConverter):
         result = output_tensors + output_momentums
         return _expr.TupleWrapper(_expr.Tuple(result), len(result))
 
+class GridSample(OnnxOpConverter):
+
+    @classmethod
+    def _impl_v16(cls, inputs, attrs, opset):
+        if 'mode' in attrs.keys():
+            mode = attrs['mode'].decode('utf-8')
+        else:
+            mode = 'bilinear'
+        if 'padding_mode' in attrs.keys():
+            padding_mode = attrs['padding_mode'].decode('utf-8')
+        else:
+            padding_mode = 'zeros'
+        if 'align_corners' in attrs.keys():
+            align_corners = attrs['align_corners']
+        else:
+            align_corners = 0
+        data_shape = infer_shape(inputs[0])
+        if len(data_shape) == 4:
+            layout = "NCHW"
+            axes = [0, 3, 1, 2]
+            grid = _op.transform.transpose(inputs[1], axes)
+        elif len(data_shape) == 5:
+            layout = "NCDHW"
+            axes = [0, 4, 1, 2, 3]
+            grid = _op.transform.transpose(inputs[1], axes)
+        else:
+            msg = f"only 4D and 5D are supported."
+            raise ValueError(msg)
+        return _op.image.grid_sample(
+                inputs[0], grid, mode, layout, padding_mode, align_corners
+        )
+
 # compatible operators that do NOT require any conversion.
 _identity_list = []
 
@@ -4360,6 +4392,9 @@ def _get_convert_map(opset):
         "Adagrad": Adagrad.get_converter(opset),
         "Adam": Adam.get_converter(opset),
         "Momentum": Momentum.get_converter(opset),
+
+        # added by qianqiu
+        "GridSample": GridSample.get_converter(opset),
     }
 
 
